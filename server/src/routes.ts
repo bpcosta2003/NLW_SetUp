@@ -1,9 +1,11 @@
+import { Day, DayHabit, Habit } from "@prisma/client";
 import dayjs from "dayjs";
-import {FastifyInstance} from "fastify";
-import {z} from "zod";
-import {prisma} from "./lib/prisma";
+import { FastifyInstance } from "fastify";
+import { map, number, z } from "zod";
+import { prisma } from "./lib/prisma";
 
-export async function appRoutes(app: FastifyInstance) {
+export async function main(app: FastifyInstance) {
+  
   app.post("/habits", async (request) => {
     const createHabitBody = z.object({
       title: z.string(),
@@ -73,8 +75,9 @@ export async function appRoutes(app: FastifyInstance) {
   });
 
   app.patch("/habits/:id/toggle", async (request) => {
+
     const toggleHabitParams = z.object({
-      id: z.string().uuid(),
+      id: z.string(),
     });
 
     const {id} = toggleHabitParams.parse(request.params);
@@ -114,35 +117,97 @@ export async function appRoutes(app: FastifyInstance) {
         data: {
           day_id: day.id,
           habit_id: id,
+          
         },
       });
     }
   });
 
   app.get("/summary", async (request) => {
-    const summary = await prisma.$queryRaw`
-      SELECT 
-        D.id, 
-        D.date,
-        (
-          SELECT 
-            cast(count(*) as float)
-          FROM day_habits DH
-          WHERE DH.day_id = D.id
-        ) as completed,
-        (
-          SELECT
-            cast(count(*) as float)
-          FROM habit_week_days HWD
-          JOIN habits H
-            ON H.id = HWD.habit_id
-          WHERE 
-            HWD.week_day = cast(strftime('%w',D.date/1000.0, 'unixepoch') as int)
-            AND H.created_at <= D.date
-        ) as amount
-      FROM days D
-    `;
 
-    return summary;
+    let summaryData = []; 
+    let daysList: Date[] = []
+    let weekDays = [];
+    let week_day_numbers: number[] = []
+    let amountResult: number[] = []
+    
+
+    const days = await prisma.day.findMany({
+      select:{
+        date:true,
+        id:true
+
+      }
+    });
+
+    const day_habits = await prisma.day.findMany({
+      include: {
+        _count:{
+          select:{dayHabits:true}
+        }
+      }
+    });
+    
+    
+    for (let i = 0; i < days.length; i++) {
+
+      daysList.push(days[i].date)
+
+      weekDays.push({
+        date: days[i].date,
+        week_days: dayjs(days[i].date).get('day')
+      })
+      
+    }
+    
+    for (let i = 0; i < weekDays.length; i++) {
+      week_day_numbers.push(Number(weekDays[i].week_days))
+    }
+    
+    const resultList = (await runQueries(daysList,week_day_numbers)).map( (item, i)=>{
+       amountResult.push(item)
+    });
+
+    for (let i = 0; i < days.length; i++) {
+      
+      summaryData.push({ 
+        date: days[i].date, 
+        id: days[i].id,
+        completed: day_habits[i]._count.dayHabits,
+        amount: amountResult[i]
+      });
+    }
+      
+    return summaryData;
+
+    
   });
-}
+
+
+  async function runQueries(days: Date[], week_days: number[]) {
+    
+    const amount = [];
+  
+    for (let i = 0; i < week_days.length; i++) {
+
+        const amountHabits = await prisma.habit.count({
+          where:{
+            created_at: {
+              lte: days[i],
+            },
+            weekDays:{
+              some:{
+                week_day: week_days[i]
+              }
+            }
+          }
+        })
+        
+        amount.push(amountHabits);
+    }
+  
+    return amount;
+  }
+  
+
+};

@@ -1,11 +1,11 @@
 import cors from "@fastify/cors";
 import Fastify from "fastify";
-import {appRoutes} from "./routes";
+import {main} from "./routes";
 
 const app = Fastify();
 
 app.register(cors);
-app.register(appRoutes);
+app.register(main);
 
 app
   .listen({

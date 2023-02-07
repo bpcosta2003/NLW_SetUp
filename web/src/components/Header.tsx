@@ -3,6 +3,7 @@ import {Plus, X} from "phosphor-react";
 import React, {useEffect, useState} from "react";
 import LogoImage from "../assets/logo.svg";
 import {NewHabitForm} from "./NewHabitForm";
+import ProgressBarCountdown from "./ProgressBarCountdown";
 
 export function Header() {
   const [isOpen, setIsOpen] = useState(false);

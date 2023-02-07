@@ -3,6 +3,7 @@ import React, {useEffect, useState} from "react";
 import {api} from "../lib/axios";
 import {generateDatesFromYearBeginning} from "../utils/generate-dates-from-year-beginning";
 import HabitDay from "./HabitDay";
+import ProgressBarCountdown from "./ProgressBarCountdown";
 
 type Summary = {
   id: string;
@@ -22,6 +23,7 @@ export function SummaryTable() {
 
   useEffect(() => {
     api.get("summary").then((response) => {
+      console.log(response.data);
       setSummary(response.data);
     });
   }, []);
@@ -53,7 +55,7 @@ export function SummaryTable() {
                 key={date.toString()}
                 date={date}
                 amount={dayInSummary?.amount}
-                defaultCompleted={dayInSummary?.completed}
+                defaultCompleted={dayInSummary?.amount}
               />
             );
           })}
