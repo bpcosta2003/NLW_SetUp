@@ -23,7 +23,6 @@ export function SummaryTable() {
 
   useEffect(() => {
     api.get("summary").then((response) => {
-      console.log(response.data);
       setSummary(response.data);
     });
   }, []);
@@ -55,7 +54,7 @@ export function SummaryTable() {
                 key={date.toString()}
                 date={date}
                 amount={dayInSummary?.amount}
-                defaultCompleted={dayInSummary?.amount}
+                defaultCompleted={dayInSummary?.completed}
               />
             );
           })}
